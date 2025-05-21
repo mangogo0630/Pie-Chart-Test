@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>圓餅圖滑動動畫</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .slider {
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="range"] {
+      width: 200px;
+    }
+
+    svg {
+      width: 300px;
+      height: 300px;
+    }
+
+    .slice {
+      transform-origin: 150px 150px;
+      cursor: pointer;
+    }
+
+    .slice:hover {
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+
+<div class="slider">
+  <label for="dataSlider">資料組合：</label>
+  <input type="range" id="dataSlider" min="0" max="4" step="1" value="0"
+         oninput="updateSliderLabel(this.value); animatePie(this.value)">
+  <span id="sliderValue">組合 1</span>
+</div>
+
+<svg id="pieChart" viewBox="0 0 300 300"></svg>
+
+<script>
+  const dataSets = [
+    [100, 80, 120, 90, 60, 110, 70, 90, 95, 105],
+    [90, 110, 100, 80, 90, 85, 80, 95, 85, 125],
+    [70, 90, 80, 75, 100, 120, 85, 80, 120, 110],
+    [60, 90, 100, 80, 120, 110, 90, 100, 95, 105],
+    [90, 100, 60, 110, 90, 120, 80, 95, 115, 100]
+  ];
+
+  const colors = [
+  "#D0E8FF",  // very light blue
+  "#A7D3FF",
+  "#7CBFFF",
+  "#52AAFF",
+  "#2996FF",
+  "#0884FF",
+  "#006FE0",
+  "#005AB8",
+  "#004190",
+  "#002A70"   // deep navy blue
+];
+
+  const centerX = 150;
+  const centerY = 150;
+  const sliceCount = 10;
+  const anglePerSlice = 360 / sliceCount;
+  const pieChart = document.getElementById("pieChart");
+
+  let currentValues = Array(sliceCount).fill(100); // 初始狀態
+
+  function polarToCartesian(cx, cy, radius, angleDeg) {
+    const rad = angleDeg * Math.PI / 180;
+    return {
+      x: cx + radius * Math.cos(rad),
+      y: cy + radius * Math.sin(rad)
+    };
+  }
+
+  function describeSlice(index, radius) {
+    const startAngle = index * anglePerSlice;
+    const endAngle = startAngle + anglePerSlice;
+    const start = polarToCartesian(centerX, centerY, radius, startAngle);
+    const end = polarToCartesian(centerX, centerY, radius, endAngle);
+    return `M ${centerX},${centerY}
+            L ${start.x},${start.y}
+            A ${radius},${radius} 0 0,1 ${end.x},${end.y}
+            Z`;
+  }
+
+  function updateSliderLabel(value) {
+    document.getElementById("sliderValue").textContent = `組合 ${Number(value) + 1}`;
+  }
+
+  function animatePie(index) {
+    const targetValues = dataSets[index];
+    const duration = 300; // 動畫時間 (ms)
+    const steps = 30;
+    const interval = duration / steps;
+    let frame = 0;
+
+    const startValues = [...currentValues];
+
+    const animation = setInterval(() => {
+      frame++;
+      const progress = frame / steps;
+
+      for (let i = 0; i < sliceCount; i++) {
+        const radius = startValues[i] + (targetValues[i] - startValues[i]) * progress;
+
+        let slice = pieChart.querySelector(`#slice-${i}`);
+        if (!slice) {
+          slice = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          slice.setAttribute("fill", colors[i % colors.length]);
+          slice.setAttribute("id", `slice-${i}`);
+          slice.setAttribute("class", "slice");
+          pieChart.appendChild(slice);
+        }
+        slice.setAttribute("d", describeSlice(i, radius));
+      }
+
+      if (frame === steps) {
+        clearInterval(animation);
+        currentValues = [...targetValues];
+      }
+    }, interval);
+  }
+
+  // 初始化
+  animatePie(0);
+</script>
+
+</body>
+</html>
